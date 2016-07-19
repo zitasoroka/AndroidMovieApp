@@ -72,7 +72,7 @@ public class MainActivityFragment extends Fragment {
 
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
 
-        // Get a reference to the ListView, and attach this adapter to it.
+        // Get a reference to the GridView, and attach this adapter to it.
         GridView gridView = (GridView) rootView.findViewById(R.id.gridview);
         gridView.setAdapter(mAdapter);
         gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -105,7 +105,7 @@ public class MainActivityFragment extends Fragment {
         private final String LOG_TAG = FetchMoviesTask.class.getSimpleName();
 
         /**
-         * Take the String representing the complete forecast in JSON Format and
+         * Take the String representing the complete movie details in JSON Format and
          * pull out the data we need to construct the Strings needed for the wireframes.
          * <p>
          * Fortunately parsing is easy:  constructor takes the JSON string and converts it
@@ -129,7 +129,7 @@ public class MainActivityFragment extends Fragment {
             String[] resultStr = new String[20];
             for (int i = 0; i < 20; i++) {
 
-                // Get the JSON object representing the day
+                // Get the JSON object representing one movie details
                 JSONObject movieMain = movieArray.getJSONObject(i);
 
                 //JSONObject overviewObject = movieMain.getJSONObject(OWM_OVERVIEW);
@@ -220,7 +220,7 @@ public class MainActivityFragment extends Fragment {
                 Log.v(LOG_TAG, "Movie str: " + forecastJsonStr);
             } catch (IOException e) {
                 Log.e(LOG_TAG, "Error ", e);
-                // If the code didn't successfully get the weather data, there's no point in attemping
+                // If the code didn't successfully get the movie data, there's no point in attemping
                 // to parse it.
                 return null;
             } finally {
