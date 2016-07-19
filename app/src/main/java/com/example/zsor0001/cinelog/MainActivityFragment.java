@@ -217,7 +217,7 @@ public class MainActivityFragment extends Fragment {
                 }
                 forecastJsonStr = buffer.toString();
 
-                Log.v(LOG_TAG, "Forecast string: " + forecastJsonStr);
+                Log.v(LOG_TAG, "Movie str: " + forecastJsonStr);
             } catch (IOException e) {
                 Log.e(LOG_TAG, "Error ", e);
                 // If the code didn't successfully get the weather data, there's no point in attemping
@@ -242,7 +242,7 @@ public class MainActivityFragment extends Fragment {
                 e.printStackTrace();
             }
 
-            // This will only happen if there was an error getting or parsing the forecast.
+            // This will only happen if there was an error getting or parsing the string.
             return null;
         }
 
@@ -251,8 +251,8 @@ public class MainActivityFragment extends Fragment {
 
             if (result != null) {
                 mAdapter.clear();
-                for (String dayForecastStr : result) {
-                    mAdapter.add(dayForecastStr);
+                for (String movieStr : result) {
+                    mAdapter.add(movieStr);
                 }
                 // New data is back from the server.  Hooray!
             }
