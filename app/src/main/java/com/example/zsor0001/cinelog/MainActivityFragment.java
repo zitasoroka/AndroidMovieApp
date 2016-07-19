@@ -171,7 +171,7 @@ public class MainActivityFragment extends Fragment {
             String forecastJsonStr = null;
 
             String sort_by = "popularity.desc";
-            String appID = "b2af4d3650a777ceaaaa5199cf1e6458";
+            String appID = "b2afxxxxxxxxxxxxxxxxf1e6458";
 
             try {
                 // Construct the URL for the TheMovieDb query
