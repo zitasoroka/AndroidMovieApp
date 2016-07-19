@@ -153,7 +153,7 @@ public class MainActivityFragment extends Fragment {
             }
 
             for (String s : resultStr) {
-                Log.v(LOG_TAG, "Forecast entry: " + s);
+                Log.v(LOG_TAG, "Movie poster: " + s);
             }
             return resultStr;
         }
