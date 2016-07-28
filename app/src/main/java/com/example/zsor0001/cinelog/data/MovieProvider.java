@@ -14,7 +14,7 @@ public class MovieProvider extends ContentProvider {
     private MovieDbHelper mOpenHelper;
 
     static final int MOVIE = 100;
-    static final int MOVIE_POSTER_PATH = 101;
+    static final int MOVIE_ID = 101;
 
 
     static UriMatcher buildUriMatcher() {
@@ -23,7 +23,7 @@ public class MovieProvider extends ContentProvider {
         final String authority = MovieContract.CONTENT_AUTHORITY;
 
         matcher.addURI(authority, MovieContract.PATH_MOVIE, MOVIE);
-        matcher.addURI(authority, MovieContract.PATH_MOVIE + "/*", MOVIE_POSTER_PATH);
+        matcher.addURI(authority, MovieContract.PATH_MOVIE + "/#", MOVIE_ID);
         return matcher;
     }
 
@@ -43,8 +43,8 @@ public class MovieProvider extends ContentProvider {
 
             case MOVIE:
                 return MovieContract.MovieEntry.CONTENT_TYPE;
-            case MOVIE_POSTER_PATH:
-                return MovieContract.MovieEntry.CONTENT_TYPE;
+            case MOVIE_ID:
+                return MovieContract.MovieEntry.CONTENT_ITEM_TYPE;
             default:
                 throw new UnsupportedOperationException("Unknown uri " + uri);
         }
@@ -65,6 +65,19 @@ public class MovieProvider extends ContentProvider {
                         projection,
                         selection,
                         selectionArgs,
+                        null,
+                        null,
+                        sortOrder
+                );
+                break;
+            }
+            case MOVIE_ID: {
+                long _id = MovieContract.MovieEntry.getId(uri);
+                retCursor = mOpenHelper.getReadableDatabase().query(
+                        MovieContract.MovieEntry.TABLE_NAME,
+                        projection,
+                        MovieContract.MovieEntry._ID + " = ?",
+                        new String[] {Long.toString(_id)},
                         null,
                         null,
                         sortOrder

@@ -17,6 +17,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.TextView;
 
 import com.example.zsor0001.cinelog.data.MovieContract;
 import com.squareup.picasso.Picasso;
@@ -154,11 +155,27 @@ public class DetailActivity extends AppCompatActivity {
                 return;
             }
 
+            String title = data.getString(COL_MOVIE_TITLE);
+            String overview = data.getString(COL_MOVIE_OVERVIEW);
+            String rating = data.getString(COL_MOVIE_RATING);
+            String release = data.getString(COL_MOVIE_RELEASE);
+
             mMovieStr = data.getString(COL_MOVIE_POSTER);
 
             ImageView detailView = (ImageView) getView().findViewById(R.id.detail_text);
             Picasso.with(getContext()).load(mMovieStr).into(detailView);
 
+            TextView titleView = (TextView)getView().findViewById(R.id.title);
+            titleView.setText(title);
+
+            TextView releaseView = (TextView)getView().findViewById(R.id.movie_year);
+            releaseView.setText(release);
+
+            TextView ratingView = (TextView)getView().findViewById(R.id.movie_rating);
+            ratingView.setText(rating);
+
+            TextView overviewView = (TextView)getView().findViewById(R.id.movie_description);
+            overviewView.setText(overview);
         }
 
         @Override

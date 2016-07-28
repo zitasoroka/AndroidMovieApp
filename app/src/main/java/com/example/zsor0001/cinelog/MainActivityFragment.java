@@ -79,7 +79,7 @@ public class MainActivityFragment extends Fragment implements LoaderManager.Load
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState) {
 
-        mAdapter = new ImageAdapter(getActivity(), null, 0);
+        mAdapter = new ImageAdapter(getActivity(), null, 0, MOVIES_LOADER);
 
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
 
@@ -95,8 +95,10 @@ public class MainActivityFragment extends Fragment implements LoaderManager.Load
 
                 Cursor cursor = (Cursor) adapterView.getItemAtPosition(position);
                 if (cursor != null) {
-                    Intent intent = new Intent(getActivity(), DetailActivity.class)
-                            .setData(MovieContract.MovieEntry.CONTENT_URI);
+                    Intent intent = new Intent(getActivity(), DetailActivity.class);
+                    final int MOVIE_ID_COL = MainActivityFragment.COL_MOVIE_ID;
+                    Uri movieUri = MovieContract.MovieEntry.buildMovieUri(cursor.getLong(MOVIE_ID_COL));
+                    intent.setData(movieUri);
                     startActivity(intent);
                 }
             }
@@ -114,21 +116,21 @@ public class MainActivityFragment extends Fragment implements LoaderManager.Load
         FetchMoviesTask moviesTask = new FetchMoviesTask(getActivity());
         moviesTask.execute();
     }
-
+/*
     @Override
     public void onStart() {
         super.onStart();
         updateMovies();
     }
+    */
 
     @Override
     public Loader<Cursor> onCreateLoader(int i, Bundle bundle) {
         String sortOrder = MovieContract.MovieEntry.COLUMN_POPULARITY + " DESC";
-        Uri moviesUri = MovieContract.MovieEntry.CONTENT_URI;
 
         return new CursorLoader(getActivity(),
-                moviesUri,
-                MOVIE_COLUMNS,
+                MovieContract.MovieEntry.CONTENT_URI,
+                new String[] { MovieContract.MovieEntry._ID, MovieContract.MovieEntry.COLUMN_POSTER_PATH },
                 null,
                 null,
                 sortOrder);

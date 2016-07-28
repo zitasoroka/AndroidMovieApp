@@ -2,17 +2,22 @@ package com.example.zsor0001.cinelog;
 
 import android.content.Context;
 import android.database.Cursor;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CursorAdapter;
 import android.widget.ImageView;
 
+import com.example.zsor0001.cinelog.data.MovieContract;
 import com.squareup.picasso.Picasso;
 
 public class ImageAdapter extends CursorAdapter {
 
     private static final String LOG_TAG = ImageAdapter.class.getSimpleName();
+
+    private Context mContext;
+    private static int sLoaderID;
 
     /**
      * This is our own custom constructor (it doesn't mirror a superclass constructor).
@@ -21,11 +26,14 @@ public class ImageAdapter extends CursorAdapter {
      * @param context The current context. Used to inflate the layout file.
      * @param c A List of String objects to display in a list
      */
-    public ImageAdapter(Context context, Cursor c, int flags) {
+    public ImageAdapter(Context context, Cursor c, int flags, int loaderID) {
         // Here, we initialize the ArrayAdapter's internal storage for the context and the list.
         // the second argument is used when the ArrayAdapter is populating a single ImageView.
 
         super(context, c, flags);
+        Log.d(LOG_TAG, "ImageAdapter");
+        mContext = context;
+        sLoaderID = loaderID;
     }
 
     private String convertCursorToPosterPath(Cursor cursor) {
@@ -37,6 +45,8 @@ public class ImageAdapter extends CursorAdapter {
     @Override
     public View newView(Context context, Cursor cursor, ViewGroup parent) {
 
+        Log.d(LOG_TAG, "In new View");
+
         return LayoutInflater.from(context).inflate(R.layout.gridview_item, parent, false);
     }
 
@@ -44,10 +54,14 @@ public class ImageAdapter extends CursorAdapter {
     public void bindView(View view, Context context, Cursor cursor) {
 
 
-        String path = convertCursorToPosterPath(cursor);
+        Log.d(LOG_TAG, "In bind View");
 
+        int moviePoster = cursor.getColumnIndex(MovieContract.MovieEntry.COLUMN_POSTER_PATH);
+        String path = cursor.getString(moviePoster);
 
-        ImageView iconView = (ImageView) view;
+        Log.i(LOG_TAG, "Image reference extracted: " + path);
+
+        ImageView iconView = (ImageView) view.findViewById(R.id.picture);
         Picasso.with(context).load(path).into(iconView);
     }
 }
