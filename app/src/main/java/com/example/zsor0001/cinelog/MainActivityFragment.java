@@ -1,8 +1,13 @@
 package com.example.zsor0001.cinelog;
 
 import android.content.Intent;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.CursorLoader;
+import android.support.v4.content.Loader;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -12,12 +17,32 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.GridView;
 
-import java.util.ArrayList;
+import com.example.zsor0001.cinelog.data.MovieContract;
 
 /**
  * A placeholder fragment containing a simple view.
  */
-public class MainActivityFragment extends Fragment {
+public class MainActivityFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor> {
+
+    private static final int MOVIES_LOADER = 0;
+
+    private static final String[] MOVIE_COLUMNS = {
+            MovieContract.MovieEntry.TABLE_NAME + "." + MovieContract.MovieEntry._ID,
+            MovieContract.MovieEntry.COLUMN_TITLE,
+            MovieContract.MovieEntry.COLUMN_OVERVIEW,
+            MovieContract.MovieEntry.COLUMN_POPULARITY,
+            MovieContract.MovieEntry.COLUMN_RELEASE_DATE,
+            MovieContract.MovieEntry.COLUMN_RATING,
+            MovieContract.MovieEntry.COLUMN_POSTER_PATH
+    };
+
+    static final int COL_MOVIE_ID = 0;
+    static final int COL_MOVIE_TITLE = 1;
+    static final int COL_MOVIE_OVERVIEW = 2;
+    static final int COL_MOVIE_POPULARITY = 3;
+    static final int COL_MOVIE_RELEASE = 4;
+    static final int COL_MOVIE_RATING = 5;
+    static final int COL_MOVIE_POSTER = 6;
 
     private ImageAdapter mAdapter;
     //public String[] resultStr;
@@ -52,33 +77,41 @@ public class MainActivityFragment extends Fragment {
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+            Bundle savedInstanceState) {
 
-
-        mAdapter = new ImageAdapter(getActivity(), new ArrayList<String>());
+        mAdapter = new ImageAdapter(getActivity(), null, 0);
 
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
 
         // Get a reference to the ListView, and attach this adapter to it.
         GridView gridView = (GridView) rootView.findViewById(R.id.gridview);
         gridView.setAdapter(mAdapter);
+
         gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
-            @Override
-            public void onItemClick(AdapterView<?> adapterView, View view, int position, long l){
 
-                String movieInfo = mAdapter.getItem(position);
-                Intent intent = new Intent(getActivity(), DetailActivity.class)
-                        .putExtra(Intent.EXTRA_TEXT, movieInfo);
-                startActivity(intent);
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
+
+                Cursor cursor = (Cursor) adapterView.getItemAtPosition(position);
+                if (cursor != null) {
+                    Intent intent = new Intent(getActivity(), DetailActivity.class)
+                            .setData(MovieContract.MovieEntry.CONTENT_URI);
+                    startActivity(intent);
+                }
             }
         });
-
         return rootView;
     }
 
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        getLoaderManager().initLoader(MOVIES_LOADER, null, this);
+        super.onActivityCreated(savedInstanceState);
+    }
+
     private void updateMovies() {
-        FetchMoviesTask moviesTask = new FetchMoviesTask(getActivity(), mAdapter);
+        FetchMoviesTask moviesTask = new FetchMoviesTask(getActivity());
         moviesTask.execute();
     }
 
@@ -87,4 +120,28 @@ public class MainActivityFragment extends Fragment {
         super.onStart();
         updateMovies();
     }
+
+    @Override
+    public Loader<Cursor> onCreateLoader(int i, Bundle bundle) {
+        String sortOrder = MovieContract.MovieEntry.COLUMN_POPULARITY + " DESC";
+        Uri moviesUri = MovieContract.MovieEntry.CONTENT_URI;
+
+        return new CursorLoader(getActivity(),
+                moviesUri,
+                MOVIE_COLUMNS,
+                null,
+                null,
+                sortOrder);
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> cursorLoader, Cursor cursor) {
+        mAdapter.swapCursor(cursor);
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> cursorLoader) {
+        mAdapter.swapCursor(null);
+    }
+
 }

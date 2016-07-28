@@ -5,7 +5,6 @@ import android.content.ContentValues;
 import android.content.UriMatcher;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 
 public class MovieProvider extends ContentProvider {
@@ -16,32 +15,6 @@ public class MovieProvider extends ContentProvider {
 
     static final int MOVIE = 100;
     static final int MOVIE_POSTER_PATH = 101;
-
-    private static final SQLiteQueryBuilder sMovieByMoviePosterQueryBuilder = new SQLiteQueryBuilder();
-
-    // movie.poster_path = ?
-    private static final String sMoviePosterPath =
-            MovieContract.MovieEntry.TABLE_NAME +
-                    "." + MovieContract.MovieEntry.COLUMN_POSTER_PATH + " = ? ";
-
-    private Cursor getMovieByPosterPath(Uri uri, String[] projection, String sortOrder) {
-        String posterPath = MovieContract.MovieEntry.getMoviePosterFromUri(uri);
-
-        String[] selectionArgs;
-        String selection;
-
-        selection = sMoviePosterPath;
-        selectionArgs = new String[] { posterPath };
-
-        return sMovieByMoviePosterQueryBuilder.query(mOpenHelper.getReadableDatabase(),
-                projection,
-                selection,
-                selectionArgs,
-                null,
-                null,
-                sortOrder
-        );
-    }
 
 
     static UriMatcher buildUriMatcher() {
@@ -96,11 +69,6 @@ public class MovieProvider extends ContentProvider {
                         null,
                         sortOrder
                 );
-                break;
-            }
-
-            case MOVIE_POSTER_PATH: {
-                retCursor = getMovieByPosterPath(uri, projection, sortOrder);
                 break;
             }
             default:

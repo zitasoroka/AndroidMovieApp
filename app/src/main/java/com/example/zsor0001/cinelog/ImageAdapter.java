@@ -1,17 +1,16 @@
 package com.example.zsor0001.cinelog;
 
-import android.app.Activity;
+import android.content.Context;
+import android.database.Cursor;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
+import android.widget.CursorAdapter;
 import android.widget.ImageView;
 
 import com.squareup.picasso.Picasso;
 
-import java.util.List;
-
-public class ImageAdapter extends ArrayAdapter<String> {
+public class ImageAdapter extends CursorAdapter {
 
     private static final String LOG_TAG = ImageAdapter.class.getSimpleName();
 
@@ -19,16 +18,41 @@ public class ImageAdapter extends ArrayAdapter<String> {
      * This is our own custom constructor (it doesn't mirror a superclass constructor).
      * The context is used to inflate the layout file, and the List is the data we want
      * to populate into the lists
-     *
      * @param context The current context. Used to inflate the layout file.
-     * @param thumbs A List of String objects to display in a list
+     * @param c A List of String objects to display in a list
      */
-    public ImageAdapter(Activity context, List<String> thumbs) {
+    public ImageAdapter(Context context, Cursor c, int flags) {
         // Here, we initialize the ArrayAdapter's internal storage for the context and the list.
         // the second argument is used when the ArrayAdapter is populating a single ImageView.
-        
-        super(context, 0, thumbs);
+
+        super(context, c, flags);
     }
+
+    private String convertCursorToPosterPath(Cursor cursor) {
+
+        return cursor.getString(MainActivityFragment.COL_MOVIE_POSTER);
+
+    }
+
+    @Override
+    public View newView(Context context, Cursor cursor, ViewGroup parent) {
+
+        return LayoutInflater.from(context).inflate(R.layout.gridview_item, parent, false);
+    }
+
+    @Override
+    public void bindView(View view, Context context, Cursor cursor) {
+
+
+        String path = convertCursorToPosterPath(cursor);
+
+
+        ImageView iconView = (ImageView) view;
+        Picasso.with(context).load(path).into(iconView);
+    }
+}
+
+    /*
 
     /**
      * Provides a view for an AdapterView (ListView, GridView, etc.)
@@ -38,7 +62,7 @@ public class ImageAdapter extends ArrayAdapter<String> {
      *                    (search online for "android view recycling" to learn more)
      * @param parent The parent ViewGroup that is used for inflation.
      * @return The View for the position in the AdapterView.
-     */
+
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         // Gets the AndroidFlavor object from the ArrayAdapter at the appropriate position
@@ -59,4 +83,4 @@ public class ImageAdapter extends ArrayAdapter<String> {
 
         return convertView;
     }
-}
+    */

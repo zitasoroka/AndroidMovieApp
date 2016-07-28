@@ -6,7 +6,6 @@ import android.content.Context;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.util.Log;
-import android.widget.ArrayAdapter;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -22,19 +21,18 @@ import org.json.JSONObject;
 
 import com.example.zsor0001.cinelog.data.MovieContract;
 
-public class FetchMoviesTask extends AsyncTask<Void, Void, String[]> {
+public class FetchMoviesTask extends AsyncTask<Void, Void, Void> {
 
 
     private final String LOG_TAG = FetchMoviesTask.class.getSimpleName();
-    private boolean DEBUG = true;
 
-    private ArrayAdapter<String> mAdapter;
     private final Context mContext;
 
-    public FetchMoviesTask(Context context, ArrayAdapter<String> movieAdapter) {
+    public FetchMoviesTask(Context context) {
         mContext = context;
-        mAdapter = movieAdapter;
     }
+
+    private boolean DEBUG = true;
 
     /**
      * Take the String representing the complete movie in JSON Format and
@@ -42,10 +40,9 @@ public class FetchMoviesTask extends AsyncTask<Void, Void, String[]> {
      * Fortunately parsing is easy:  constructor takes the JSON string and converts it
      * into an Object hierarchy for us.
      */
-    private String[] getMovieDataFromJson(String forecastJsonStr)
+    private void getMovieDataFromJson(String forecastJsonStr)
             throws JSONException {
 
-        String[] resultStr = new String[100];
 
         // These are the names of the JSON objects that need to be extracted.
         final String OWM_LIST = "results";
@@ -59,8 +56,6 @@ public class FetchMoviesTask extends AsyncTask<Void, Void, String[]> {
         try {
             JSONObject forecastJson = new JSONObject(forecastJsonStr);
             JSONArray movieArray = forecastJson.getJSONArray(OWM_LIST);
-
-            //ArrayList<String> group = new ArrayList<String>();
 
             // Insert the new movie information into database
             Vector<ContentValues> cVVector = new Vector<>(movieArray.length());
@@ -93,7 +88,6 @@ public class FetchMoviesTask extends AsyncTask<Void, Void, String[]> {
 
                 cVVector.add(movieValues);
 
-                resultStr[i] = posterURL;
             }
 
             int inserted = 0;
@@ -129,11 +123,10 @@ public class FetchMoviesTask extends AsyncTask<Void, Void, String[]> {
             Log.e(LOG_TAG, e.getMessage(), e);
             e.printStackTrace();
         }
-        return resultStr;
     }
 
     @Override
-    protected String[] doInBackground(Void... params) {
+    protected Void doInBackground(Void... params) {
 
 
         // These two need to be declared outside the try/catch
@@ -160,8 +153,6 @@ public class FetchMoviesTask extends AsyncTask<Void, Void, String[]> {
                     .build();
 
             URL url = new URL(builtUri.toString());
-
-            Log.v(LOG_TAG, "Built URI " + builtUri.toString());
 
             // Create the request to TheMovieDb, and open the connection
             urlConnection = (HttpURLConnection) url.openConnection();
@@ -190,13 +181,15 @@ public class FetchMoviesTask extends AsyncTask<Void, Void, String[]> {
                 return null;
             }
             moviesJsnStr = buffer.toString();
+            getMovieDataFromJson(moviesJsnStr);
 
-            Log.v(LOG_TAG, "Movie string: " + moviesJsnStr);
         } catch (IOException e) {
             Log.e(LOG_TAG, "Error ", e);
             // If the code didn't successfully get the movie data, there's no point in attemping
             // to parse it.
-            return null;
+        }catch (JSONException e) {
+            Log.e(LOG_TAG, e.getMessage(), e);
+            e.printStackTrace();
         } finally {
             if (urlConnection != null) {
                 urlConnection.disconnect();
@@ -209,26 +202,7 @@ public class FetchMoviesTask extends AsyncTask<Void, Void, String[]> {
                 }
             }
         }
-        try {
-            return getMovieDataFromJson(moviesJsnStr);
-        } catch (JSONException e) {
-            Log.e(LOG_TAG, e.getMessage(), e);
-            e.printStackTrace();
-        }
-
         // This will only happen if there was an error getting or parsing the data.
         return null;
-    }
-
-    @Override
-    protected void onPostExecute(String[] result) {
-
-        if (result != null) {
-            mAdapter.clear();
-            for (String postersStr : result) {
-                mAdapter.add(postersStr);
-            }
-            // New data is back from the server.  Hooray!
-        }
     }
 }
