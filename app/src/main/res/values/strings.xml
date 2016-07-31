@@ -23,4 +23,9 @@
 
     <!-- Value in SharedPreferences for imperial temperature unit option [CHAR LIMIT=NONE] -->
     <string name="pref_sort_vote_average" translatable="false">vote</string>
+
+    <!-- Account type (for sync-adapter authenticator) -->
+    <!-- SyncAdapter related -->
+    <string name="sync_account_type">cinelog.example.com</string>
+    <string name="content_authority">com.example.zsor0001.cinelog</string>
 </resources>

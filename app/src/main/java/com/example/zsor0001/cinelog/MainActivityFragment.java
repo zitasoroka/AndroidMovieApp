@@ -18,6 +18,7 @@ import android.widget.AdapterView;
 import android.widget.GridView;
 
 import com.example.zsor0001.cinelog.data.MovieContract;
+import com.example.zsor0001.cinelog.sync.MovieSyncAdapter;
 
 /**
  * A placeholder fragment containing a simple view.
@@ -113,8 +114,24 @@ public class MainActivityFragment extends Fragment implements LoaderManager.Load
     }
 
     private void updateMovies() {
+
+        MovieSyncAdapter.syncImmediately(getActivity());
+
+        /*
+        Intent alarmIntent = new Intent(getActivity(), MovieService.AlarmReceiver.class);
+
+        // Wrap in a pending intent which only fires once
+        PendingIntent pi = PendingIntent.getBroadcast(getActivity(), 0, alarmIntent, PendingIntent.FLAG_ONE_SHOT);
+
+        AlarmManager am = (AlarmManager)getActivity().getSystemService(Context.ALARM_SERVICE);
+
+        // Set the AlarmManager to wake up the system
+        am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 5000, pi);
+
+        /*
         FetchMoviesTask moviesTask = new FetchMoviesTask(getActivity());
         moviesTask.execute();
+        */
     }
 /*
     @Override
