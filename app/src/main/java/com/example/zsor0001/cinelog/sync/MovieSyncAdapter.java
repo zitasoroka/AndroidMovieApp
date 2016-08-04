@@ -2,16 +2,25 @@ package com.example.zsor0001.cinelog.sync;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.AbstractThreadedSyncAdapter;
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.SyncRequest;
 import android.content.SyncResult;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.TaskStackBuilder;
+import android.text.format.Time;
 import android.util.Log;
 
 import java.io.BufferedReader;
@@ -26,17 +35,42 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.example.zsor0001.cinelog.MainActivity;
 import com.example.zsor0001.cinelog.R;
 import com.example.zsor0001.cinelog.data.MovieContract;
 
+import static java.lang.System.currentTimeMillis;
+
 public class MovieSyncAdapter extends AbstractThreadedSyncAdapter {
 
-    public final String LOG_TAG = MovieSyncAdapter.class.getSimpleName();
+    public static final String LOG_TAG = MovieSyncAdapter.class.getSimpleName();
 
     //Interval at which to sync with the weather, in milliseconds.
     //60 seconds (1 minute) 180 = 3 hours
     public static final int SYNC_INTERVAL = 60 * 180;
     public static final int SYNC_FLEXTIME = SYNC_INTERVAL / 3;
+    private static final long DAY_IN_MILLIS = 1000 * 60 * 60 * 24;
+    private static final int MOVIE_NOTIFICATION_ID = 3004;
+
+    private static final String[] NOTIFY_MOVIE_PROJECTION = new String[] {
+            MovieContract.MovieEntry.TABLE_NAME + "." + MovieContract.MovieEntry._ID,
+            MovieContract.MovieEntry.COLUMN_TITLE,
+            MovieContract.MovieEntry.COLUMN_OVERVIEW,
+            MovieContract.MovieEntry.COLUMN_POPULARITY,
+            MovieContract.MovieEntry.COLUMN_RELEASE_DATE,
+            MovieContract.MovieEntry.COLUMN_RATING,
+            MovieContract.MovieEntry.COLUMN_POSTER_PATH,
+            MovieContract.MovieEntry.COLUMN_DATE
+    };
+
+    static final int COL_MOVIE_ID = 0;
+    static final int COL_MOVIE_TITLE = 1;
+    static final int COL_MOVIE_OVERVIEW = 2;
+    static final int COL_MOVIE_POPULARITY = 3;
+    static final int COL_MOVIE_RELEASE = 4;
+    static final int COL_MOVIE_RATING = 5;
+    static final int COL_MOVIE_POSTER = 6;
+    static final int COL_MOVIE_DATE = 7;
 
     public MovieSyncAdapter(Context context, boolean autoInitialize) {
         super(context, autoInitialize);
@@ -148,6 +182,16 @@ public class MovieSyncAdapter extends AbstractThreadedSyncAdapter {
 
             // Insert the new movie information into database
             Vector<ContentValues> cVVector = new Vector<>(movieArray.length());
+
+            Time dayTime = new Time();
+            dayTime.setToNow();
+
+            // we start at the day returned by local time. Otherwise this is a mess.
+            int julianStartDay = Time.getJulianDay(currentTimeMillis(), dayTime.gmtoff);
+
+            // now we work exclusively in UTC
+            dayTime = new Time();
+
             for (int i = 0; i < movieArray.length(); i++) {
 
                 // Get the JSON object representing the movie
@@ -159,12 +203,16 @@ public class MovieSyncAdapter extends AbstractThreadedSyncAdapter {
                 double vote_average = movieMain.getDouble(OWM_VOTE_AVERAGE);
                 double popularity = movieMain.getDouble(OWM_POPULARITY);
 
+
                 // Construct the URL for the TheMovieDb query
                 final String baseUrl =
                         "http://image.tmdb.org/t/p/w185";
                 final String posterPath = movieMain.getString(OWM_PATH);
 
                 String posterURL = baseUrl.concat(posterPath);
+
+
+                long date = dayTime.setJulianDay(julianStartDay);
 
                 ContentValues movieValues = new ContentValues();
 
@@ -174,22 +222,27 @@ public class MovieSyncAdapter extends AbstractThreadedSyncAdapter {
                 movieValues.put(MovieContract.MovieEntry.COLUMN_RATING, vote_average);
                 movieValues.put(MovieContract.MovieEntry.COLUMN_POSTER_PATH, posterURL);
                 movieValues.put(MovieContract.MovieEntry.COLUMN_POPULARITY, popularity);
+                movieValues.put(MovieContract.MovieEntry.COLUMN_DATE, date);
 
                 cVVector.add(movieValues);
-
             }
+
 
             int inserted = 0;
 
             if (cVVector.size() > 0) {
 
-                // delete old data so we don't build up an endless history
-                getContext().getContentResolver().delete(MovieContract.MovieEntry.CONTENT_URI,
-                        null, null);
-
                 ContentValues[] cvArray = new ContentValues[cVVector.size()];
                 cVVector.toArray(cvArray);
                 getContext().getContentResolver().bulkInsert(MovieContract.MovieEntry.CONTENT_URI, cvArray);
+
+                // delete old data so we don't build up an endless history
+
+                getContext().getContentResolver().delete(MovieContract.MovieEntry.CONTENT_URI,
+                        MovieContract.MovieEntry.COLUMN_DATE + " <= ?",
+                        new String[] { Long.toString((dayTime.setJulianDay(julianStartDay-1)))});
+
+               notifyMovies();
             }
 
             /*
@@ -218,10 +271,80 @@ public class MovieSyncAdapter extends AbstractThreadedSyncAdapter {
         }
     }
 
+    private void notifyMovies() {
+
+        Context context = getContext();
+
+        //checking the last update and notify if it' the first of the day
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        String displayNotificationsKey = context.getString(R.string.pref_enable_notifications_key);
+        boolean displayNotifications = prefs.getBoolean(displayNotificationsKey,
+                Boolean.parseBoolean(context.getString(R.string.pref_enable_notifications_default)));
+
+        if (displayNotifications) {
+
+            String lastNotificationKey = context.getString(R.string.pref_last_notification);
+            long lastSync = prefs.getLong(lastNotificationKey, 0);
+
+            if (currentTimeMillis() - lastSync >= DAY_IN_MILLIS) {
+                // Last sync was more than 1 day ago, let's send a notification with the movies.
+
+                Uri movieUri = MovieContract.MovieEntry.buildMoviesWithDate(System.currentTimeMillis());
+
+                // we'll query our contentProvider, as always
+                Cursor cursor = context.getContentResolver().query(movieUri, NOTIFY_MOVIE_PROJECTION, null, null, null);
+                if (cursor.moveToFirst()) {
+                    String title = cursor.getString(COL_MOVIE_TITLE);
+                    String overview = cursor.getString(COL_MOVIE_OVERVIEW);
+                    String rating = cursor.getString(COL_MOVIE_RATING);
+                    String release = cursor.getString(COL_MOVIE_RELEASE);
+                    String poster = cursor.getString(COL_MOVIE_POSTER);
+
+                    // NotificationCompatBuilder is a very convenient way to build backward-compatible
+                    // notifications.  Just throw in some data.
+                    NotificationCompat.Builder mBuilder =
+                            new NotificationCompat.Builder(getContext())
+                                    .setContentTitle(title)
+                                    .setContentText(overview);
+
+                    // Make something interesting happen when the user clicks on the notification.
+                    // In this case, opening the app is sufficient.
+                    Intent resultIntent = new Intent(context, MainActivity.class);
+
+                    // The stack builder object will contain an artificial back stack for the
+                    // started Activity.
+                    // This ensures that navigating backward from the Activity leads out of
+                    // your application to the Home screen.
+                    TaskStackBuilder stackBuilder = TaskStackBuilder.create(context);
+                    stackBuilder.addNextIntent(resultIntent);
+                    PendingIntent resultPendingIntent =
+                            stackBuilder.getPendingIntent(
+                                    0,
+                                    PendingIntent.FLAG_UPDATE_CURRENT
+                            );
+                    mBuilder.setContentIntent(resultPendingIntent);
+
+                    NotificationManager mNotificationManager =
+                            (NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
+                    // MOVIE_NOTIFICATION_ID allows you to update the notification later on.
+                    mNotificationManager.notify(MOVIE_NOTIFICATION_ID, mBuilder.build());
+
+                    //refreshing last sync
+                    SharedPreferences.Editor editor = prefs.edit();
+                    editor.putLong(lastNotificationKey, System.currentTimeMillis());
+                    editor.commit();
+                }
+                cursor.close();
+            }
+
+        }
+    }
+
     /**
      * Helper method to schedule the sync adapter periodic execution
      */
     public static void configurePeriodicSync(Context context, int syncInterval, int flexTime) {
+        Log.d(LOG_TAG, "in configurePeriodicSync");
         Account account = getSyncAccount(context);
         String authority = context.getString(R.string.content_authority);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
@@ -237,17 +360,19 @@ public class MovieSyncAdapter extends AbstractThreadedSyncAdapter {
         }
     }
 
-    /**
+    /*
      * Helper method to have the sync adapter sync immediately
      * @param context The context used to access the account service
-     */
+
     public static void syncImmediately(Context context) {
+        Log.d(LOG_TAG, "in sync immediately");
         Bundle bundle = new Bundle();
         bundle.putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
         bundle.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
         ContentResolver.requestSync(getSyncAccount(context),
                 context.getString(R.string.content_authority), bundle);
     }
+    */
 
     /**
      * Helper method to get the fake account to be used with SyncAdapter, or make a new one
@@ -257,6 +382,7 @@ public class MovieSyncAdapter extends AbstractThreadedSyncAdapter {
      * @return a fake account.
      */
     public static Account getSyncAccount(Context context) {
+
         // Get an instance of the Android account manager
         AccountManager accountManager =
                 (AccountManager) context.getSystemService(Context.ACCOUNT_SERVICE);
@@ -265,8 +391,10 @@ public class MovieSyncAdapter extends AbstractThreadedSyncAdapter {
         Account newAccount = new Account(
                 context.getString(R.string.app_name), context.getString(R.string.sync_account_type));
 
+
         // If the password doesn't exist, the account doesn't exist
-        if (null == accountManager.getPassword(newAccount)) {
+        if (accountManager.getPassword(newAccount) == null) {
+            Log.d(LOG_TAG, "in get account " + accountManager.getPassword(newAccount));
 
         /*
          * Add the account and account type, no password or user data
@@ -300,7 +428,8 @@ public class MovieSyncAdapter extends AbstractThreadedSyncAdapter {
         /*
          * Finally, let's do a sync to get things started
          */
-        syncImmediately(context);
+        //syncImmediately(context);
+
     }
 
     public static void initializeSyncAdapter(Context context) {

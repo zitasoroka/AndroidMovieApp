@@ -18,7 +18,6 @@ import android.widget.AdapterView;
 import android.widget.GridView;
 
 import com.example.zsor0001.cinelog.data.MovieContract;
-import com.example.zsor0001.cinelog.sync.MovieSyncAdapter;
 
 /**
  * A placeholder fragment containing a simple view.
@@ -34,7 +33,8 @@ public class MainActivityFragment extends Fragment implements LoaderManager.Load
             MovieContract.MovieEntry.COLUMN_POPULARITY,
             MovieContract.MovieEntry.COLUMN_RELEASE_DATE,
             MovieContract.MovieEntry.COLUMN_RATING,
-            MovieContract.MovieEntry.COLUMN_POSTER_PATH
+            MovieContract.MovieEntry.COLUMN_POSTER_PATH,
+            MovieContract.MovieEntry.COLUMN_DATE
     };
 
     static final int COL_MOVIE_ID = 0;
@@ -44,6 +44,7 @@ public class MainActivityFragment extends Fragment implements LoaderManager.Load
     static final int COL_MOVIE_RELEASE = 4;
     static final int COL_MOVIE_RATING = 5;
     static final int COL_MOVIE_POSTER = 6;
+    static final int COL_MOVIE_DATE = 7;
 
     private ImageAdapter mAdapter;
     //public String[] resultStr;
@@ -115,7 +116,7 @@ public class MainActivityFragment extends Fragment implements LoaderManager.Load
 
     private void updateMovies() {
 
-        MovieSyncAdapter.syncImmediately(getActivity());
+        //MovieSyncAdapter.syncImmediately(getActivity());
 
         /*
         Intent alarmIntent = new Intent(getActivity(), MovieService.AlarmReceiver.class);

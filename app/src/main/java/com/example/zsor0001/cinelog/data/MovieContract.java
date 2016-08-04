@@ -5,6 +5,7 @@ import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.net.Uri;
 import android.provider.BaseColumns;
+import android.text.format.Time;
 
 /**
  * Defines table and column names for the moviw database.
@@ -26,6 +27,13 @@ public class MovieContract {
     // looking at movie data
     public static final String PATH_MOVIE = "movies";
 
+    public static long normalizeDate(long startDate) {
+        // normalize the start date to the beginning of the (UTC) day
+        Time time = new Time();
+        time.set(startDate);
+        int julianDay = Time.getJulianDay(startDate, time.gmtoff);
+        return time.setJulianDay(julianDay);
+    }
 
     /* Inner class that defines the table contents of the popular_movies table */
     public static final class MovieEntry implements BaseColumns {
@@ -63,6 +71,9 @@ public class MovieContract {
         // Path of the poster
         public static final String COLUMN_POSTER_PATH = "poster_path";
 
+        // Date, stored as long in milliseconds since the epoch
+        public static final String COLUMN_DATE = "date";
+
         public static Uri buildMovieUri(long id) {
             return ContentUris.withAppendedId(CONTENT_URI, id);
         }
@@ -71,13 +82,9 @@ public class MovieContract {
             return Long.parseLong(uri.getPathSegments().get(1));
         }
 
-        public static Uri buildMoviePoster(String posterPath) {
-            return CONTENT_URI.buildUpon().appendPath(posterPath).build();
+        public static Uri buildMoviesWithDate(long date) {
+            return CONTENT_URI.buildUpon().appendPath(Long.toString(normalizeDate(date))).build();
 
-        }
-
-        public static String getMoviePosterFromUri(Uri uri) {
-            return uri.getPathSegments().get(1);
         }
     }
 }
