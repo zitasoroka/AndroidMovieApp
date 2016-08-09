@@ -97,42 +97,50 @@ public class MovieSyncAdapter extends AbstractThreadedSyncAdapter {
                     "http://api.themoviedb.org/3/discover/movie?";
             final String SORT_PARAM = "sort_by";
             final String APPID_PARAM = "api_key";
+            final String PAGE = "page";
 
-            Uri builtUri = Uri.parse(FORECAST_BASE_URL).buildUpon()
-                    .appendQueryParameter(SORT_PARAM, sort_by)
-                    .appendQueryParameter(APPID_PARAM, appID)
-                    .build();
+            for(int i = 1; i<5; i++) {
 
-            URL url = new URL(builtUri.toString());
+                String pageNo = Integer.toString(i);
 
-            // Create the request to TheMovieDb, and open the connection
-            urlConnection = (HttpURLConnection) url.openConnection();
-            urlConnection.setRequestMethod("GET");
-            urlConnection.connect();
+                Uri builtUri = Uri.parse(FORECAST_BASE_URL).buildUpon()
+                        .appendQueryParameter(SORT_PARAM, sort_by)
+                        .appendQueryParameter(APPID_PARAM, appID)
+                        .appendQueryParameter(APPID_PARAM, appID)
+                        .appendQueryParameter(PAGE, pageNo)
+                        .build();
 
-            // Read the input stream into a String
-            InputStream inputStream = urlConnection.getInputStream();
-            StringBuffer buffer = new StringBuffer();
-            if (inputStream == null) {
-                // Nothing to do.
-                return;
+                URL url = new URL(builtUri.toString());
+
+                // Create the request to TheMovieDb, and open the connection
+                urlConnection = (HttpURLConnection) url.openConnection();
+                urlConnection.setRequestMethod("GET");
+                urlConnection.connect();
+
+                // Read the input stream into a String
+                InputStream inputStream = urlConnection.getInputStream();
+                StringBuffer buffer = new StringBuffer();
+                if (inputStream == null) {
+                    // Nothing to do.
+                    return;
+                }
+                reader = new BufferedReader(new InputStreamReader(inputStream));
+
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    // Since it's JSON, adding a newline isn't necessary (it won't affect parsing)
+                    // But it does make debugging a *lot* easier if you print out the completed
+                    // buffer for debugging.
+                    buffer.append(line + "\n");
+                }
+
+                if (buffer.length() == 0) {
+                    // Stream was empty.  No point in parsing.
+                    return;
+                }
+                moviesJsnStr = buffer.toString();
+                getMovieDataFromJson(moviesJsnStr);
             }
-            reader = new BufferedReader(new InputStreamReader(inputStream));
-
-            String line;
-            while ((line = reader.readLine()) != null) {
-                // Since it's JSON, adding a newline isn't necessary (it won't affect parsing)
-                // But it does make debugging a *lot* easier if you print out the completed
-                // buffer for debugging.
-                buffer.append(line + "\n");
-            }
-
-            if (buffer.length() == 0) {
-                // Stream was empty.  No point in parsing.
-                return;
-            }
-            moviesJsnStr = buffer.toString();
-            getMovieDataFromJson(moviesJsnStr);
 
         } catch (IOException e) {
             Log.e(LOG_TAG, "Error ", e);
